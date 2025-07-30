@@ -5,19 +5,14 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Input;
 using Avalonia.Controls.Documents;
-using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
-using System;
-using System.Net.Http;
-using System.Threading.Tasks;
 using System.Globalization;
 using Microsoft.Extensions.Logging;
-using MarkdownViewer.Core.Controls;
 using MarkdownViewer.Core.Elements;
 using MarkdownViewer.Core.Services;
-using System.IO;
-using Avalonia.Styling;
 using AvaloniaMath.Controls;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace MarkdownViewer.Core.Implementations
 {
@@ -30,6 +25,12 @@ namespace MarkdownViewer.Core.Implementations
         private readonly double _baseFontSize = 14;
         private readonly IImageCache _imageCache;
         private readonly ILogger _logger;
+
+        // 差分更新相关字段
+        private string? _cachedMarkdown;
+        private List<MarkdownElement>? _cachedElements;
+        private Control? _cachedControl;
+        private StackPanel? _cachedPanel;
 
         public event EventHandler<string>? LinkClicked;
 
@@ -105,16 +106,32 @@ namespace MarkdownViewer.Core.Implementations
                 switch (inline)
                 {
                     case Elements.TextElement text:
-                        textBlock.Inlines?.Add(new Run { Text = text.Text ?? string.Empty, BaselineAlignment = BaselineAlignment.Center });
+                        textBlock.Inlines?.Add(
+                            new Run
+                            {
+                                Text = text.Text ?? string.Empty,
+                                BaselineAlignment = BaselineAlignment.Center
+                            }
+                        );
                         break;
                     case EmphasisElement emphasis:
                         RenderEmphasisInline(textBlock, emphasis);
                         break;
                     case CodeInlineElement code:
-                        textBlock.Inlines?.Add(new InlineUIContainer { Child = CreateCodeBorder(code.Code ?? string.Empty) });
+                        textBlock.Inlines?.Add(
+                            new InlineUIContainer
+                            {
+                                Child = CreateCodeBorder(code.Code ?? string.Empty)
+                            }
+                        );
                         break;
                     case LinkElement link:
-                        textBlock.Inlines?.Add(new InlineUIContainer { Child = CreateLinkButton(link.Text ?? string.Empty, link.Url) });
+                        textBlock.Inlines?.Add(
+                            new InlineUIContainer
+                            {
+                                Child = CreateLinkButton(link.Text ?? string.Empty, link.Url)
+                            }
+                        );
                         break;
                     case ImageElement image:
                         var img = new Image
@@ -128,7 +145,9 @@ namespace MarkdownViewer.Core.Implementations
                         textBlock.Inlines?.Add(new InlineUIContainer { Child = img });
                         break;
                     case MathInlineElement mathInline:
-                        textBlock.Inlines?.Add(new InlineUIContainer { Child = RenderMathInline(mathInline) });
+                        textBlock.Inlines?.Add(
+                            new InlineUIContainer { Child = RenderMathInline(mathInline) }
+                        );
                         break;
                 }
             }
@@ -200,9 +219,62 @@ namespace MarkdownViewer.Core.Implementations
 
         public Control RenderDocument(string markdown)
         {
-            var parser = new MarkdigParser();
-            var elements = parser.ParseTextAsync(markdown).ToBlockingEnumerable();
+            // 检查是否有缓存且内容相同
+            if (_cachedMarkdown == markdown && _cachedControl != null)
+            {
+                return _cachedControl;
+            }
 
+            var parser = new MarkdigParser();
+            var elements = parser.ParseTextAsync(markdown).ToBlockingEnumerable().ToList();
+
+            // 如果有缓存，尝试差分更新
+            if (_cachedElements != null && _cachedPanel != null)
+            {
+                var updatedControl = TryDifferentialUpdate(markdown, elements);
+                if (updatedControl != null)
+                {
+                    return updatedControl;
+                }
+            }
+
+            // 完整重新渲染
+            return RenderDocumentFull(markdown, elements);
+        }
+
+        private Control TryDifferentialUpdate(string markdown, List<MarkdownElement> newElements)
+        {
+            try
+            {
+                if (_cachedElements == null || _cachedPanel == null)
+                    return null;
+
+                var differences = FindElementDifferences(_cachedElements, newElements);
+
+                if (differences.Count == 0)
+                {
+                    // 没有差异，返回缓存的控制
+                    return _cachedControl!;
+                }
+
+                // 应用差分更新
+                ApplyDifferentialUpdates(differences, newElements);
+
+                // 更新缓存
+                _cachedMarkdown = markdown;
+                _cachedElements = newElements;
+
+                return _cachedControl!;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Differential update failed, falling back to full render");
+                return null;
+            }
+        }
+
+        private Control RenderDocumentFull(string markdown, List<MarkdownElement> elements)
+        {
             var panel = new StackPanel
             {
                 Orientation = Orientation.Vertical,
@@ -215,7 +287,330 @@ namespace MarkdownViewer.Core.Implementations
                 panel.Children.Add(control);
             }
 
+            // 更新缓存
+            _cachedMarkdown = markdown;
+            _cachedElements = elements;
+            _cachedControl = panel;
+            _cachedPanel = panel;
+
             return panel;
+        }
+
+        private List<ElementDifference> FindElementDifferences(
+            List<MarkdownElement> oldElements,
+            List<MarkdownElement> newElements
+        )
+        {
+            var differences = new List<ElementDifference>();
+
+            // 使用最长公共子序列算法找到差异
+            var lcs = ComputeLongestCommonSubsequence(oldElements, newElements);
+
+            int oldIndex = 0,
+                newIndex = 0,
+                lcsIndex = 0;
+
+            while (oldIndex < oldElements.Count || newIndex < newElements.Count)
+            {
+                if (
+                    oldIndex < oldElements.Count
+                    && newIndex < newElements.Count
+                    && lcsIndex < lcs.Count
+                    && AreElementsEqual(oldElements[oldIndex], newElements[newIndex])
+                )
+                {
+                    // 元素相同，跳过
+                    oldIndex++;
+                    newIndex++;
+                    lcsIndex++;
+                }
+                else if (
+                    oldIndex < oldElements.Count
+                    && (
+                        lcsIndex >= lcs.Count
+                        || !AreElementsEqual(oldElements[oldIndex], lcs[lcsIndex])
+                    )
+                )
+                {
+                    // 旧元素被删除
+                    differences.Add(
+                        new ElementDifference
+                        {
+                            Type = DifferenceType.Removed,
+                            OldIndex = oldIndex,
+                            Element = oldElements[oldIndex]
+                        }
+                    );
+                    oldIndex++;
+                }
+                else if (
+                    newIndex < newElements.Count
+                    && (
+                        lcsIndex >= lcs.Count
+                        || !AreElementsEqual(newElements[newIndex], lcs[lcsIndex])
+                    )
+                )
+                {
+                    // 新元素被添加
+                    differences.Add(
+                        new ElementDifference
+                        {
+                            Type = DifferenceType.Added,
+                            NewIndex = newIndex,
+                            Element = newElements[newIndex]
+                        }
+                    );
+                    newIndex++;
+                }
+                else
+                {
+                    oldIndex++;
+                    newIndex++;
+                }
+            }
+
+            return differences;
+        }
+
+        private List<MarkdownElement> ComputeLongestCommonSubsequence(
+            List<MarkdownElement> oldElements,
+            List<MarkdownElement> newElements
+        )
+        {
+            var lcs = new List<MarkdownElement>();
+
+            for (int i = 0; i < oldElements.Count; i++)
+            {
+                for (int j = 0; j < newElements.Count; j++)
+                {
+                    if (AreElementsEqual(oldElements[i], newElements[j]))
+                    {
+                        lcs.Add(oldElements[i]);
+                        break;
+                    }
+                }
+            }
+
+            return lcs;
+        }
+
+        private bool AreElementsEqual(MarkdownElement? element1, MarkdownElement? element2)
+        {
+            if (element1 == null || element2 == null)
+                return element1 == element2;
+
+            if (element1.ElementType != element2.ElementType)
+                return false;
+
+            return element1 switch
+            {
+                HeadingElement h1 when element2 is HeadingElement h2
+                    => h1.Level == h2.Level && h1.Text == h2.Text,
+
+                ParagraphElement p1 when element2 is ParagraphElement p2
+                    => p1.Text == p2.Text && AreInlineElementsEqual(p1.Inlines, p2.Inlines),
+
+                CodeBlockElement c1 when element2 is CodeBlockElement c2
+                    => c1.Code == c2.Code && c1.Language == c2.Language,
+
+                ImageElement img1 when element2 is ImageElement img2
+                    => img1.Source == img2.Source && img1.Alt == img2.Alt,
+
+                LinkElement l1 when element2 is LinkElement l2
+                    => l1.Url == l2.Url && l1.Text == l2.Text,
+
+                ListElement list1 when element2 is ListElement list2
+                    => list1.IsOrdered == list2.IsOrdered
+                        && AreListItemsEqual(list1.Items, list2.Items),
+
+                TaskListElement task1 when element2 is TaskListElement task2
+                    => AreTaskListItemsEqual(task1.Items, task2.Items),
+
+                QuoteElement q1 when element2 is QuoteElement q2
+                    => q1.Text == q2.Text && AreInlineElementsEqual(q1.Inlines, q2.Inlines),
+
+                TableElement t1 when element2 is TableElement t2 => AreTableElementsEqual(t1, t2),
+
+                EmphasisElement e1 when element2 is EmphasisElement e2
+                    => e1.Text == e2.Text && e1.IsStrong == e2.IsStrong,
+
+                CodeInlineElement ci1 when element2 is CodeInlineElement ci2
+                    => ci1.Code == ci2.Code,
+
+                MathBlockElement mb1 when element2 is MathBlockElement mb2
+                    => mb1.Content == mb2.Content,
+
+                MathInlineElement mi1 when element2 is MathInlineElement mi2
+                    => mi1.Content == mi2.Content,
+
+                Elements.TextElement te1 when element2 is Elements.TextElement te2
+                    => te1.Text == te2.Text,
+
+                HorizontalRuleElement when element2 is HorizontalRuleElement => true,
+
+                _ => false
+            };
+        }
+
+        private bool AreInlineElementsEqual(
+            List<MarkdownElement>? inlines1,
+            List<MarkdownElement>? inlines2
+        )
+        {
+            if (inlines1 == null || inlines2 == null)
+                return inlines1 == inlines2;
+
+            if (inlines1.Count != inlines2.Count)
+                return false;
+
+            for (int i = 0; i < inlines1.Count; i++)
+            {
+                if (!AreElementsEqual(inlines1[i], inlines2[i]))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private bool AreListItemsEqual(List<ListItemElement>? items1, List<ListItemElement>? items2)
+        {
+            if (items1 == null || items2 == null)
+                return items1 == items2;
+
+            if (items1.Count != items2.Count)
+                return false;
+
+            for (int i = 0; i < items1.Count; i++)
+            {
+                var item1 = items1[i];
+                var item2 = items2[i];
+
+                if (
+                    item1.Text != item2.Text
+                    || item1.Level != item2.Level
+                    || !AreListItemsEqual(item1.Children, item2.Children)
+                    || !AreInlineElementsEqual(item1.Inlines, item2.Inlines)
+                )
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool AreTaskListItemsEqual(
+            List<TaskListItemElement>? items1,
+            List<TaskListItemElement>? items2
+        )
+        {
+            if (items1 == null || items2 == null)
+                return items1 == items2;
+
+            if (items1.Count != items2.Count)
+                return false;
+
+            for (int i = 0; i < items1.Count; i++)
+            {
+                var item1 = items1[i];
+                var item2 = items2[i];
+
+                if (
+                    item1.Text != item2.Text
+                    || item1.IsChecked != item2.IsChecked
+                    || item1.Level != item2.Level
+                    || !AreTaskListItemsEqual(item1.Children, item2.Children)
+                    || !AreInlineElementsEqual(item1.Inlines, item2.Inlines)
+                )
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool AreTableElementsEqual(TableElement table1, TableElement table2)
+        {
+            if (table1.Headers.Count != table2.Headers.Count)
+                return false;
+
+            for (int i = 0; i < table1.Headers.Count; i++)
+            {
+                if (table1.Headers[i] != table2.Headers[i])
+                    return false;
+            }
+
+            if (table1.Rows.Count != table2.Rows.Count)
+                return false;
+
+            for (int i = 0; i < table1.Rows.Count; i++)
+            {
+                var row1 = table1.Rows[i];
+                var row2 = table2.Rows[i];
+
+                if (row1.Count != row2.Count)
+                    return false;
+
+                for (int j = 0; j < row1.Count; j++)
+                {
+                    if (row1[j] != row2[j])
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
+        private void ApplyDifferentialUpdates(
+            List<ElementDifference> differences,
+            List<MarkdownElement> newElements
+        )
+        {
+            if (_cachedPanel == null)
+                return;
+
+            // 按索引倒序处理删除操作，避免索引变化
+            var removals = differences
+                .Where(d => d.Type == DifferenceType.Removed)
+                .OrderByDescending(d => d.OldIndex)
+                .ToList();
+
+            foreach (var removal in removals)
+            {
+                if (removal.OldIndex < _cachedPanel.Children.Count)
+                {
+                    _cachedPanel.Children.RemoveAt(removal.OldIndex);
+                }
+            }
+
+            // 按索引正序处理添加操作
+            var additions = differences
+                .Where(d => d.Type == DifferenceType.Added)
+                .OrderBy(d => d.NewIndex)
+                .ToList();
+
+            foreach (var addition in additions)
+            {
+                var control = RenderElement(addition.Element);
+                var insertIndex = Math.Min(addition.NewIndex, _cachedPanel.Children.Count);
+                _cachedPanel.Children.Insert(insertIndex, control);
+            }
+        }
+
+        // 差分更新相关的辅助类
+        private class ElementDifference
+        {
+            public DifferenceType Type { get; set; }
+            public int OldIndex { get; set; } = -1;
+            public int NewIndex { get; set; } = -1;
+            public MarkdownElement Element { get; set; } = null!;
+        }
+
+        private enum DifferenceType
+        {
+            Added,
+            Removed
         }
 
         private Control RenderElement(MarkdownElement element)
@@ -237,43 +632,6 @@ namespace MarkdownViewer.Core.Implementations
                 MathInlineElement mathInline => RenderMathInline(mathInline),
                 _ => new TextBlock { Text = "Unsupported element" }
             };
-        }
-
-        public void UpdateElement(IControl control, MarkdownElement element)
-        {
-            switch (element)
-            {
-                case HeadingElement heading when control is TextBlock textBlock:
-                    UpdateHeading(textBlock, heading);
-                    break;
-                case ParagraphElement paragraph when control is TextBlock textBlock:
-                    UpdateParagraph(textBlock, paragraph);
-                    break;
-                case CodeBlockElement codeBlock when control is TextBox textBox:
-                    UpdateCodeBlock(textBox, codeBlock);
-                    break;
-                case ListElement list when control is StackPanel panel:
-                    UpdateList(panel, list);
-                    break;
-                case TaskListElement taskList when control is StackPanel panel:
-                    UpdateTaskList(panel, taskList);
-                    break;
-                case QuoteElement quote when control is Border border:
-                    UpdateQuote(border, quote);
-                    break;
-                case ImageElement image when control is Image img:
-                    UpdateImage(img, image);
-                    break;
-                case LinkElement link when control is Button btn:
-                    UpdateLink(btn, link);
-                    break;
-                case TableElement table when control is Grid grid:
-                    UpdateTable(grid, table);
-                    break;
-                case EmphasisElement emphasis when control is TextBlock textBlock:
-                    UpdateEmphasis(textBlock, emphasis);
-                    break;
-            }
         }
 
         private Control RenderHeading(HeadingElement heading)
@@ -430,29 +788,6 @@ namespace MarkdownViewer.Core.Implementations
             return grid;
         }
 
-        private void UpdateHeading(TextBlock textBlock, HeadingElement heading)
-        {
-            textBlock.Text = heading.Text;
-            textBlock.FontSize = GetHeadingFontSize(heading.Level);
-        }
-
-        private void UpdateParagraph(TextBlock textBlock, ParagraphElement paragraph)
-        {
-            if (textBlock.Inlines == null)
-                return;
-
-            textBlock.Inlines.Clear();
-            if (paragraph.Inlines != null)
-            {
-                RenderInlineElements(textBlock, paragraph.Inlines);
-            }
-        }
-
-        private void UpdateCodeBlock(TextBox textBox, CodeBlockElement codeBlock)
-        {
-            textBox.Text = codeBlock.Code;
-        }
-
         private double GetHeadingFontSize(int level)
         {
             return level switch
@@ -607,18 +942,6 @@ namespace MarkdownViewer.Core.Implementations
             };
         }
 
-        private void UpdateQuote(Border border, QuoteElement quote)
-        {
-            if (border.Child is TextBlock textBlock)
-            {
-                textBlock.Inlines?.Clear();
-                if (quote.Inlines != null)
-                {
-                    RenderInlineElements(textBlock, quote.Inlines);
-                }
-            }
-        }
-
         private Control RenderImage(ImageElement image)
         {
             var img = new Image
@@ -654,97 +977,6 @@ namespace MarkdownViewer.Core.Implementations
 
             textBlock.Text = link.Text;
             return textBlock;
-        }
-
-        private void UpdateList(StackPanel panel, ListElement list)
-        {
-            if (panel.Children == null || list.Items == null)
-                return;
-
-            panel.Children.Clear();
-            foreach (var item in list.Items)
-            {
-                if (item == null)
-                    continue;
-
-                var itemPanel = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Margin = new Thickness(item.Level * 20, 0, 0, 0)
-                };
-
-                var bullet = new TextBlock
-                {
-                    Text = list.IsOrdered ? $"{list.Items.IndexOf(item) + 1}." : "•",
-                    Width = 20,
-                    TextAlignment = TextAlignment.Right,
-                    Margin = new Thickness(0, 0, 5, 0)
-                };
-
-                var content = CreateListItemContent(item);
-
-                if (itemPanel.Children != null)
-                {
-                    itemPanel.Children.Add(bullet);
-                    itemPanel.Children.Add(content);
-                }
-
-                panel.Children.Add(itemPanel);
-            }
-        }
-
-        private void UpdateTaskList(StackPanel panel, TaskListElement taskList)
-        {
-            if (panel.Children == null || taskList.Items == null)
-                return;
-
-            panel.Children.Clear();
-            foreach (var item in taskList.Items)
-            {
-                var itemPanel = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Margin = new Thickness(item.Level * 20, 0, 0, 0),
-                    Spacing = 5
-                };
-
-                var checkbox = new CheckBox
-                {
-                    IsChecked = item.IsChecked,
-                    IsEnabled = false, // Set to read-only
-                    VerticalAlignment = VerticalAlignment.Top
-                };
-
-                var content = CreateTaskListItemContent(item);
-
-                if (itemPanel.Children != null)
-                {
-                    itemPanel.Children.Add(checkbox);
-                    itemPanel.Children.Add(content);
-                }
-
-                panel.Children.Add(itemPanel);
-            }
-        }
-
-        private void UpdateImage(Image img, ImageElement image)
-        {
-            LoadImageAsync(img, image.Source);
-        }
-
-        private void UpdateLink(Button btn, LinkElement link)
-        {
-            if (btn.Content is TextBlock textBlock && textBlock.Inlines != null)
-            {
-                textBlock.Inlines.Clear();
-                var run = new Run
-                {
-                    Text = link.Text ?? string.Empty,
-                    TextDecorations = TextDecorations.Underline,
-                    Foreground = GetLinkForeground()
-                };
-                textBlock.Inlines.Add(run);
-            }
         }
 
         private async void LoadImageAsync(Image img, string source)
@@ -804,11 +1036,6 @@ namespace MarkdownViewer.Core.Implementations
             }
 
             return new DrawingImage(drawingGroup);
-        }
-
-        private void OnLinkClicked(string url)
-        {
-            LinkClicked?.Invoke(this, url);
         }
 
         private Control RenderTable(TableElement table)
@@ -957,64 +1184,6 @@ namespace MarkdownViewer.Core.Implementations
             };
         }
 
-        private void UpdateTable(Grid grid, TableElement table)
-        {
-            if (grid.Children == null)
-                return;
-
-            grid.Children.Clear();
-            grid.RowDefinitions.Clear();
-            grid.ColumnDefinitions.Clear();
-
-            // Add column definitions
-            foreach (var _ in table.Headers)
-            {
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Star });
-            }
-
-            // Add header row
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            for (int i = 0; i < table.Headers.Count; i++)
-            {
-                var header = table.Headers[i];
-                if (header == null)
-                    continue;
-
-                var headerCell = new TextBlock
-                {
-                    Text = header ?? string.Empty,
-                    FontWeight = FontWeight.Bold,
-                    Padding = new Thickness(5),
-                    Background = GetTableHeaderBackground()
-                };
-                Grid.SetRow(headerCell, 0);
-                Grid.SetColumn(headerCell, i);
-                grid.Children.Add(headerCell);
-            }
-
-            // Add data rows
-            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
-            {
-                var row = table.Rows[rowIndex];
-                if (row == null)
-                    continue;
-
-                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                for (int colIndex = 0; colIndex < row.Count; colIndex++)
-                {
-                    var cell = row[colIndex];
-                    var textBlock = new TextBlock
-                    {
-                        Text = cell ?? string.Empty,
-                        Padding = new Thickness(5)
-                    };
-                    Grid.SetRow(textBlock, rowIndex + 1);
-                    Grid.SetColumn(textBlock, colIndex);
-                    grid.Children.Add(textBlock);
-                }
-            }
-        }
-
         private Control RenderEmphasis(EmphasisElement emphasis)
         {
             var textBlock = new TextBlock();
@@ -1034,26 +1203,6 @@ namespace MarkdownViewer.Core.Implementations
                 }
             }
             return textBlock;
-        }
-
-        private void UpdateEmphasis(TextBlock textBlock, EmphasisElement emphasis)
-        {
-            if (textBlock.Inlines == null)
-                return;
-
-            textBlock.Inlines.Clear();
-            if (emphasis.IsStrong)
-            {
-                var bold = new Bold();
-                bold.Inlines?.Add(new Run { Text = emphasis.Text ?? string.Empty });
-                textBlock.Inlines.Add(bold);
-            }
-            else
-            {
-                var italic = new Italic();
-                italic.Inlines?.Add(new Run { Text = emphasis.Text ?? string.Empty });
-                textBlock.Inlines.Add(italic);
-            }
         }
 
         private Control RenderHorizontalRule()
