@@ -1,87 +1,100 @@
-<Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    
-    <!-- Markdown renderer theme resources -->
-    <Style Selector=":is(Control)">
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:am="clr-namespace:AvaloniaMath.Controls;assembly=AvaloniaMath">
+
+    <Style Selector=":is(Application)">
         <Style.Resources>
             <ResourceDictionary>
                 <ResourceDictionary.ThemeDictionaries>
-                    <!-- Light theme -->
+                    <!--  Light theme  -->
                     <ResourceDictionary x:Key="Light">
-                        <SolidColorBrush x:Key="MarkdownCodeBackground" Color="#F6F8FA"/>
-                        <SolidColorBrush x:Key="MarkdownCodeBorder" Color="#EAEAEF"/>
-                        <SolidColorBrush x:Key="MarkdownQuoteBackground" Color="#F9F9F9"/>
-                        <SolidColorBrush x:Key="MarkdownQuoteForeground" Color="#6C6C6C"/>
-                        <SolidColorBrush x:Key="MarkdownBorderColor" Color="#E5E5E5"/>
-                        <SolidColorBrush x:Key="MarkdownLinkForeground" Color="#007AFF"/>
-                        <SolidColorBrush x:Key="MarkdownTableHeaderBackground" Color="#F7F7F7"/>
+                        <SolidColorBrush x:Key="MarkdownCodeBackground" Color="#F6F8FA" />
+                        <SolidColorBrush x:Key="MarkdownCodeBorder" Color="#EAEAEF" />
+                        <SolidColorBrush x:Key="MarkdownQuoteBackground" Color="#F9F9F9" />
+                        <SolidColorBrush x:Key="MarkdownQuoteForeground" Color="#6C6C6C" />
+                        <SolidColorBrush x:Key="MarkdownBorderColor" Color="#E5E5E5" />
+                        <SolidColorBrush x:Key="MarkdownLinkForeground" Color="#007AFF" />
+                        <SolidColorBrush x:Key="MarkdownTableHeaderBackground" Color="#F7F7F7" />
                     </ResourceDictionary>
-                    
-                    <!-- Dark theme -->
+
+                    <!--  Dark theme  -->
                     <ResourceDictionary x:Key="Dark">
-                        <SolidColorBrush x:Key="MarkdownCodeBackground" Color="#161B22"/>
-                        <SolidColorBrush x:Key="MarkdownCodeBorder" Color="#30363D"/>
-                        <SolidColorBrush x:Key="MarkdownQuoteBackground" Color="#161B22"/>
-                        <SolidColorBrush x:Key="MarkdownQuoteForeground" Color="#8B949E"/>
-                        <SolidColorBrush x:Key="MarkdownBorderColor" Color="#30363D"/>
-                        <SolidColorBrush x:Key="MarkdownLinkForeground" Color="#58A6FF"/>
-                        <SolidColorBrush x:Key="MarkdownTableHeaderBackground" Color="#21262D"/>
+                        <SolidColorBrush x:Key="MarkdownCodeBackground" Color="#161B22" />
+                        <SolidColorBrush x:Key="MarkdownCodeBorder" Color="#30363D" />
+                        <SolidColorBrush x:Key="MarkdownQuoteBackground" Color="#161B22" />
+                        <SolidColorBrush x:Key="MarkdownQuoteForeground" Color="#8B949E" />
+                        <SolidColorBrush x:Key="MarkdownBorderColor" Color="#30363D" />
+                        <SolidColorBrush x:Key="MarkdownLinkForeground" Color="#58A6FF" />
+                        <SolidColorBrush x:Key="MarkdownTableHeaderBackground" Color="#21262D" />
                     </ResourceDictionary>
-                    
-                    <!-- Default theme (follows system) -->
+
+                    <!--  Default theme (follows system)  -->
                     <ResourceDictionary x:Key="Default">
-                        <SolidColorBrush x:Key="MarkdownCodeBackground" Color="#F6F8FA"/>
-                        <SolidColorBrush x:Key="MarkdownCodeBorder" Color="#EAEAEF"/>
-                        <SolidColorBrush x:Key="MarkdownQuoteBackground" Color="#F9F9F9"/>
-                        <SolidColorBrush x:Key="MarkdownQuoteForeground" Color="#6C6C6C"/>
-                        <SolidColorBrush x:Key="MarkdownBorderColor" Color="#E5E5E5"/>
-                        <SolidColorBrush x:Key="MarkdownLinkForeground" Color="#007AFF"/>
-                        <SolidColorBrush x:Key="MarkdownTableHeaderBackground" Color="#F7F7F7"/>
+                        <SolidColorBrush x:Key="MarkdownCodeBackground" Color="#F6F8FA" />
+                        <SolidColorBrush x:Key="MarkdownCodeBorder" Color="#EAEAEF" />
+                        <SolidColorBrush x:Key="MarkdownQuoteBackground" Color="#F9F9F9" />
+                        <SolidColorBrush x:Key="MarkdownQuoteForeground" Color="#6C6C6C" />
+                        <SolidColorBrush x:Key="MarkdownBorderColor" Color="#E5E5E5" />
+                        <SolidColorBrush x:Key="MarkdownLinkForeground" Color="#007AFF" />
+                        <SolidColorBrush x:Key="MarkdownTableHeaderBackground" Color="#F7F7F7" />
                     </ResourceDictionary>
                 </ResourceDictionary.ThemeDictionaries>
             </ResourceDictionary>
         </Style.Resources>
     </Style>
-    
-    <!-- For backward compatibility, also define these resources in global scope -->
-    <Style Selector=":is(Application)">
-        <Style.Resources>
-            <ResourceDictionary>
-                <ResourceDictionary.ThemeDictionaries>
-                    <!-- Light theme -->
-                    <ResourceDictionary x:Key="Light">
-                        <SolidColorBrush x:Key="MarkdownCodeBackground" Color="#F6F8FA"/>
-                        <SolidColorBrush x:Key="MarkdownCodeBorder" Color="#EAEAEF"/>
-                        <SolidColorBrush x:Key="MarkdownQuoteBackground" Color="#F9F9F9"/>
-                        <SolidColorBrush x:Key="MarkdownQuoteForeground" Color="#6C6C6C"/>
-                        <SolidColorBrush x:Key="MarkdownBorderColor" Color="#E5E5E5"/>
-                        <SolidColorBrush x:Key="MarkdownLinkForeground" Color="#007AFF"/>
-                        <SolidColorBrush x:Key="MarkdownTableHeaderBackground" Color="#F7F7F7"/>
-                    </ResourceDictionary>
-                    
-                    <!-- Dark theme -->
-                    <ResourceDictionary x:Key="Dark">
-                        <SolidColorBrush x:Key="MarkdownCodeBackground" Color="#161B22"/>
-                        <SolidColorBrush x:Key="MarkdownCodeBorder" Color="#30363D"/>
-                        <SolidColorBrush x:Key="MarkdownQuoteBackground" Color="#161B22"/>
-                        <SolidColorBrush x:Key="MarkdownQuoteForeground" Color="#8B949E"/>
-                        <SolidColorBrush x:Key="MarkdownBorderColor" Color="#30363D"/>
-                        <SolidColorBrush x:Key="MarkdownLinkForeground" Color="#58A6FF"/>
-                        <SolidColorBrush x:Key="MarkdownTableHeaderBackground" Color="#21262D"/>
-                    </ResourceDictionary>
-                    
-                    <!-- Default theme (follows system) -->
-                    <ResourceDictionary x:Key="Default">
-                        <SolidColorBrush x:Key="MarkdownCodeBackground" Color="#F6F8FA"/>
-                        <SolidColorBrush x:Key="MarkdownCodeBorder" Color="#EAEAEF"/>
-                        <SolidColorBrush x:Key="MarkdownQuoteBackground" Color="#F9F9F9"/>
-                        <SolidColorBrush x:Key="MarkdownQuoteForeground" Color="#6C6C6C"/>
-                        <SolidColorBrush x:Key="MarkdownBorderColor" Color="#E5E5E5"/>
-                        <SolidColorBrush x:Key="MarkdownLinkForeground" Color="#007AFF"/>
-                        <SolidColorBrush x:Key="MarkdownTableHeaderBackground" Color="#F7F7F7"/>
-                    </ResourceDictionary>
-                </ResourceDictionary.ThemeDictionaries>
-            </ResourceDictionary>
-        </Style.Resources>
+
+    <Style Selector="Border.markdownCodeBlock">
+        <Setter Property="Background" Value="{DynamicResource MarkdownCodeBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MarkdownCodeBorder}" />
+    </Style>
+
+    <Style Selector="Border.markdownQuote">
+        <Setter Property="Background" Value="{DynamicResource MarkdownQuoteBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MarkdownBorderColor}" />
+    </Style>
+
+    <Style Selector="TextBlock.markdownQuoteText">
+        <Setter Property="Foreground" Value="{DynamicResource MarkdownQuoteForeground}" />
+    </Style>
+
+    <Style Selector="Border.markdownHorizontalRule">
+        <Setter Property="Background" Value="{DynamicResource MarkdownBorderColor}" />
+    </Style>
+
+    <Style Selector="Border.markdownTable">
+        <Setter Property="BorderBrush" Value="{DynamicResource MarkdownBorderColor}" />
+    </Style>
+
+    <Style Selector="Border.markdownTableCell">
+        <Setter Property="BorderBrush" Value="{DynamicResource MarkdownBorderColor}" />
+    </Style>
+
+    <Style Selector="Border.markdownTableHeader">
+        <Setter Property="Background" Value="{DynamicResource MarkdownTableHeaderBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MarkdownBorderColor}" />
+    </Style>
+
+    <Style Selector="TextBlock.markdownLink">
+        <Setter Property="Foreground" Value="{DynamicResource MarkdownLinkForeground}" />
+    </Style>
+
+    <Style Selector="Button.markdownLinkButton">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <Style Selector="TextBlock.markdownLinkButtonText">
+        <Setter Property="Foreground" Value="{DynamicResource MarkdownLinkForeground}" />
+    </Style>
+
+    <Style Selector="Border.markdownInlineCode">
+        <Setter Property="Background" Value="{DynamicResource MarkdownCodeBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MarkdownCodeBorder}" />
+    </Style>
+
+    <Style Selector="Button.markdownCopyButton">
+        <Setter Property="Background" Value="{DynamicResource MarkdownCodeBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MarkdownCodeBorder}" />
     </Style>
 </Styles> 

@@ -96,25 +96,6 @@ namespace MarkdownViewer.Core.Controls
         public MarkdownViewer()
         {
             Renderer = DefaultRenderer;
-
-            // Listen for theme changes
-            MarkdownTheme.ThemeChanged += OnThemeChanged;
-
-            // Clean up event subscriptions when control is unloaded
-            this.DetachedFromVisualTree += OnDetachedFromVisualTree;
-        }
-
-        private void OnThemeChanged(object? sender, EventArgs e)
-        {
-            // Re-render content when theme changes
-            RenderContent();
-        }
-
-        private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
-        {
-            // Clean up event subscriptions
-            MarkdownTheme.ThemeChanged -= OnThemeChanged;
-            this.DetachedFromVisualTree -= OnDetachedFromVisualTree;
         }
 
         private void RenderContent()

@@ -46,51 +46,10 @@ namespace MarkdownViewer.Core.Implementations
             MarkdownTheme.Initialize();
         }
 
-        // Get theme-related colors
+        // Get theme-related colors (kept for potential future use)
         private IBrush GetThemeBrush(string resourceKey, Color fallbackColor)
         {
             return MarkdownTheme.GetThemeBrush(resourceKey, fallbackColor);
-        }
-
-        private IBrush GetCodeBackground()
-        {
-            // Prioritize custom Markdown theme resources
-            return GetThemeBrush("MarkdownCodeBackground", Color.FromRgb(246, 248, 250));
-        }
-
-        private IBrush GetCodeBorder()
-        {
-            return GetThemeBrush("MarkdownCodeBorder", Color.FromRgb(234, 236, 239));
-        }
-
-        private IBrush GetQuoteBackground()
-        {
-            return GetThemeBrush("MarkdownQuoteBackground", Color.FromRgb(249, 249, 249));
-        }
-
-        private IBrush GetBorderColor()
-        {
-            return GetThemeBrush("MarkdownBorderColor", Color.FromRgb(229, 229, 229));
-        }
-
-        private IBrush GetLinkForeground()
-        {
-            return GetThemeBrush("MarkdownLinkForeground", Color.FromRgb(0, 122, 255));
-        }
-
-        private IBrush GetTableHeaderBackground()
-        {
-            return GetThemeBrush("MarkdownTableHeaderBackground", Color.FromRgb(247, 247, 247));
-        }
-
-        private IBrush GetQuoteForeground()
-        {
-            return GetThemeBrush("MarkdownQuoteForeground", Color.FromRgb(108, 108, 108));
-        }
-
-        private IBrush GetHorizontalRuleBackground()
-        {
-            return GetThemeBrush("MarkdownBorderColor", Color.FromRgb(229, 229, 229));
         }
 
         private void RenderInlineElements(TextBlock textBlock, List<MarkdownElement> inlines)
@@ -726,12 +685,11 @@ namespace MarkdownViewer.Core.Implementations
 
             var border = new Border
             {
-                Background = GetCodeBackground(),
-                BorderBrush = GetCodeBorder(),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(6),
                 Margin = new Thickness(0, 0, 0, 10)
             };
+            border.Classes.Add("markdownCodeBlock");
 
             var textBox = new TextBlock
             {
@@ -752,11 +710,10 @@ namespace MarkdownViewer.Core.Implementations
                 IsVisible = false,
                 Padding = new Thickness(8, 4, 8, 4),
                 CornerRadius = new CornerRadius(4),
-                Background = GetCodeBackground(),
-                BorderBrush = GetCodeBorder(),
                 BorderThickness = new Thickness(1),
                 Tag = false, // Copy button state
             };
+            copyButton.Classes.Add("markdownCopyButton");
 
             copyButton.Click += async (s, e) =>
             {
@@ -922,24 +879,25 @@ namespace MarkdownViewer.Core.Implementations
             var textBlock = new TextBlock
             {
                 TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(10),
-                Foreground = GetQuoteForeground()
+                Margin = new Thickness(10)
             };
+            textBlock.Classes.Add("markdownQuoteText");
 
             if (quote.Inlines != null)
             {
                 RenderInlineElements(textBlock, quote.Inlines);
             }
 
-            return new Border
+            var border = new Border
             {
                 Child = textBlock,
-                BorderBrush = GetBorderColor(),
                 BorderThickness = new Thickness(4, 0, 0, 0),
-                Background = GetQuoteBackground(),
                 Margin = new Thickness(0, 0, 0, 10),
                 Padding = new Thickness(10)
             };
+            border.Classes.Add("markdownQuote");
+
+            return border;
         }
 
         private Control RenderImage(ImageElement image)
@@ -961,10 +919,10 @@ namespace MarkdownViewer.Core.Implementations
             var textBlock = new TextBlock
             {
                 TextWrapping = TextWrapping.Wrap,
-                Foreground = GetLinkForeground(),
                 TextDecorations = TextDecorations.Underline,
                 Cursor = new Cursor(StandardCursorType.Hand)
             };
+            textBlock.Classes.Add("markdownLink");
 
             textBlock.PointerPressed += (s, e) =>
             {
@@ -1043,12 +1001,12 @@ namespace MarkdownViewer.Core.Implementations
             // Create an outer border container with rounded corners
             var outerBorder = new Border
             {
-                BorderBrush = GetBorderColor(),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(6),
                 Margin = new Thickness(0, 0, 0, 10),
                 ClipToBounds = true // Ensure content doesn't exceed rounded border
             };
+            outerBorder.Classes.Add("markdownTable");
 
             var grid = new Grid();
 
@@ -1120,14 +1078,14 @@ namespace MarkdownViewer.Core.Implementations
                     };
                     LoadImageAsync(img, url);
 
-                    return new Border
+                    var border = new Border
                     {
                         Child = img,
-                        BorderBrush = GetBorderColor(),
                         BorderThickness = new Thickness(1),
-                        Background = isHeader ? GetTableHeaderBackground() : null,
                         Padding = new Thickness(2)
                     };
+                    border.Classes.Add(isHeader ? "markdownTableHeader" : "markdownTableCell");
+                    return border;
                 }
             }
             // Handle link markup
@@ -1143,14 +1101,14 @@ namespace MarkdownViewer.Core.Implementations
                     var url = content.Substring(urlStart + 1, urlEnd - urlStart - 1);
 
                     var button = CreateLinkButton(linkText, url);
-                    return new Border
+                    var border = new Border
                     {
                         Child = button,
-                        BorderBrush = GetBorderColor(),
                         BorderThickness = new Thickness(1),
-                        Background = isHeader ? GetTableHeaderBackground() : null,
                         Padding = new Thickness(2)
                     };
+                    border.Classes.Add(isHeader ? "markdownTableHeader" : "markdownTableCell");
+                    return border;
                 }
             }
             // Handle code markup
@@ -1158,14 +1116,14 @@ namespace MarkdownViewer.Core.Implementations
             {
                 var code = content.Trim('`');
                 var codeBorder = CreateCodeBorder(code);
-                return new Border
+                var border = new Border
                 {
                     Child = codeBorder,
-                    BorderBrush = GetBorderColor(),
                     BorderThickness = new Thickness(1),
-                    Background = isHeader ? GetTableHeaderBackground() : null,
                     Padding = new Thickness(2)
                 };
+                border.Classes.Add(isHeader ? "markdownTableHeader" : "markdownTableCell");
+                return border;
             }
 
             // Plain text
@@ -1175,13 +1133,9 @@ namespace MarkdownViewer.Core.Implementations
                 textBlock.FontWeight = FontWeight.Bold;
             }
 
-            return new Border
-            {
-                Child = textBlock,
-                BorderBrush = GetBorderColor(),
-                BorderThickness = new Thickness(1),
-                Background = isHeader ? GetTableHeaderBackground() : null
-            };
+            var cellBorder = new Border { Child = textBlock, BorderThickness = new Thickness(1) };
+            cellBorder.Classes.Add(isHeader ? "markdownTableHeader" : "markdownTableCell");
+            return cellBorder;
         }
 
         private Control RenderEmphasis(EmphasisElement emphasis)
@@ -1207,29 +1161,27 @@ namespace MarkdownViewer.Core.Implementations
 
         private Control RenderHorizontalRule()
         {
-            return new Border
-            {
-                Height = 1,
-                Background = GetHorizontalRuleBackground(),
-                Margin = new Thickness(0, 10, 0, 10)
-            };
+            var border = new Border { Height = 1, Margin = new Thickness(0, 10, 0, 10) };
+            border.Classes.Add("markdownHorizontalRule");
+            return border;
         }
 
         private Button CreateLinkButton(string text, string url)
         {
+            var textBlock = new TextBlock
+            {
+                Text = text,
+                TextDecorations = TextDecorations.Underline
+            };
+            textBlock.Classes.Add("markdownLinkButtonText");
+
             var button = new Button
             {
-                Content = new TextBlock
-                {
-                    Text = text,
-                    TextDecorations = TextDecorations.Underline,
-                    Foreground = GetLinkForeground()
-                },
-                Background = Brushes.Transparent,
-                BorderThickness = new Thickness(0),
+                Content = textBlock,
                 Padding = new Thickness(0),
                 Cursor = new Cursor(StandardCursorType.Hand)
             };
+            button.Classes.Add("markdownLinkButton");
 
             button.Click += (s, e) =>
             {
@@ -1252,17 +1204,18 @@ namespace MarkdownViewer.Core.Implementations
                 FontSize = _baseFontSize * 0.9
             };
 
-            return new Border
+            var border = new Border
             {
                 Child = codeText,
                 Padding = new Thickness(6, 2, 6, 2),
-                Background = GetCodeBackground(),
-                BorderBrush = GetCodeBorder(),
                 BorderThickness = new Thickness(1),
                 VerticalAlignment = VerticalAlignment.Center,
                 CornerRadius = new CornerRadius(4),
                 Margin = new Thickness(0, 0, 0, -1)
             };
+            border.Classes.Add("markdownInlineCode");
+
+            return border;
         }
 
         private Control RenderMathBlock(MathBlockElement mathBlock)
