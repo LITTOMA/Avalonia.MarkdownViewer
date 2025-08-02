@@ -271,14 +271,17 @@ namespace MarkdownViewer.Core.Implementations
 
             while (oldIndex < oldElements.Count || newIndex < newElements.Count)
             {
-                if (
-                    oldIndex < oldElements.Count
+                // 检查是否在LCS中找到了匹配的元素
+                bool foundInLcs =
+                    lcsIndex < lcs.Count
+                    && oldIndex < oldElements.Count
                     && newIndex < newElements.Count
-                    && lcsIndex < lcs.Count
                     && AreElementsEqual(oldElements[oldIndex], newElements[newIndex])
-                )
+                    && AreElementsEqual(oldElements[oldIndex], lcs[lcsIndex]);
+
+                if (foundInLcs)
                 {
-                    // 元素相同，跳过
+                    // 元素在LCS中，跳过
                     oldIndex++;
                     newIndex++;
                     lcsIndex++;
@@ -291,7 +294,7 @@ namespace MarkdownViewer.Core.Implementations
                     )
                 )
                 {
-                    // 旧元素被删除
+                    // 旧元素不在LCS中，被删除
                     differences.Add(
                         new ElementDifference
                         {
@@ -310,7 +313,7 @@ namespace MarkdownViewer.Core.Implementations
                     )
                 )
                 {
-                    // 新元素被添加
+                    // 新元素不在LCS中，被添加
                     differences.Add(
                         new ElementDifference
                         {
@@ -323,6 +326,7 @@ namespace MarkdownViewer.Core.Implementations
                 }
                 else
                 {
+                    // 安全的后备情况
                     oldIndex++;
                     newIndex++;
                 }
@@ -336,17 +340,48 @@ namespace MarkdownViewer.Core.Implementations
             List<MarkdownElement> newElements
         )
         {
-            var lcs = new List<MarkdownElement>();
+            if (oldElements.Count == 0 || newElements.Count == 0)
+                return new List<MarkdownElement>();
 
-            for (int i = 0; i < oldElements.Count; i++)
+            // 使用动态规划计算LCS
+            var dp = new int[oldElements.Count + 1, newElements.Count + 1];
+
+            // 填充DP表
+            for (int i = 1; i <= oldElements.Count; i++)
             {
-                for (int j = 0; j < newElements.Count; j++)
+                for (int j = 1; j <= newElements.Count; j++)
                 {
-                    if (AreElementsEqual(oldElements[i], newElements[j]))
+                    if (AreElementsEqual(oldElements[i - 1], newElements[j - 1]))
                     {
-                        lcs.Add(oldElements[i]);
-                        break;
+                        dp[i, j] = dp[i - 1, j - 1] + 1;
                     }
+                    else
+                    {
+                        dp[i, j] = Math.Max(dp[i - 1, j], dp[i, j - 1]);
+                    }
+                }
+            }
+
+            // 回溯构建LCS
+            var lcs = new List<MarkdownElement>();
+            int oldIndex = oldElements.Count;
+            int newIndex = newElements.Count;
+
+            while (oldIndex > 0 && newIndex > 0)
+            {
+                if (AreElementsEqual(oldElements[oldIndex - 1], newElements[newIndex - 1]))
+                {
+                    lcs.Insert(0, oldElements[oldIndex - 1]);
+                    oldIndex--;
+                    newIndex--;
+                }
+                else if (dp[oldIndex - 1, newIndex] >= dp[oldIndex, newIndex - 1])
+                {
+                    oldIndex--;
+                }
+                else
+                {
+                    newIndex--;
                 }
             }
 
@@ -564,6 +599,9 @@ namespace MarkdownViewer.Core.Implementations
             public int OldIndex { get; set; } = -1;
             public int NewIndex { get; set; } = -1;
             public MarkdownElement Element { get; set; } = null!;
+
+            public override string ToString() =>
+                $"{Type} at OldIndex: {OldIndex}, NewIndex: {NewIndex}, Element: {Element?.GetType().Name ?? "null"}";
         }
 
         private enum DifferenceType
@@ -1231,7 +1269,6 @@ namespace MarkdownViewer.Core.Implementations
 
         private Control RenderMathInline(MathInlineElement mathInline)
         {
-            // AvaloniaMath 只提供 FormulaBlock，没有 FormulaInline，行内公式用 FormulaBlock 并缩小字号和去除上下边距
             return new FormulaBlock
             {
                 Formula = mathInline.Content,
