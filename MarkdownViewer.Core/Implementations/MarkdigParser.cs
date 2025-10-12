@@ -23,13 +23,12 @@ namespace MarkdownViewer.Core.Implementations
 
         public MarkdigParser()
         {
-            var settings = new MarkdownPipelineBuilder();
-            settings.UseAdvancedExtensions();
-            settings.EnableTrackTrivia();
-            settings.UsePreciseSourceLocation();
-            settings.UseTaskLists();
-            settings.UseMathematics(); // 启用数学扩展
-            _pipeline = settings.Build();
+            _pipeline = new MarkdownPipelineBuilder()
+                .DisableHtml()
+                .UseAdvancedExtensions()
+                .EnableTrackTrivia()
+                .UsePreciseSourceLocation()
+                .Build();
         }
 
         public async IAsyncEnumerable<MarkdownElement> ParseStreamAsync(
@@ -98,9 +97,16 @@ namespace MarkdownViewer.Core.Implementations
                     var element = new HeadingElement
                     {
                         RawText = blockText,
-                        ElementType = Elements.MarkdownElementType.Heading,
-                        Level = heading.Level,
-                        Text = ProcessInlineElements(heading.Inline) ?? string.Empty
+                        Level = heading.Level switch
+                        {
+                            1 => MarkdownHeadingLevel.H1,
+                            2 => MarkdownHeadingLevel.H2,
+                            3 => MarkdownHeadingLevel.H3,
+                            4 => MarkdownHeadingLevel.H4,
+                            5 => MarkdownHeadingLevel.H5,
+                            _ => 0
+                        },
+                        Text = ProcessInlineElements(heading.Inline)
                     };
                     yield return element;
                 }
@@ -128,7 +134,6 @@ namespace MarkdownViewer.Core.Implementations
                         var element = new TaskListElement
                         {
                             RawText = blockText,
-                            ElementType = Elements.MarkdownElementType.TaskList,
                             Items = ParseTaskListItems(listBlock, 0)
                         };
                         yield return element;
@@ -138,7 +143,6 @@ namespace MarkdownViewer.Core.Implementations
                         var element = new ListElement
                         {
                             RawText = blockText,
-                            ElementType = Elements.MarkdownElementType.List,
                             IsOrdered = listBlock.IsOrdered,
                             Items = ParseListItems(listBlock, 0)
                         };
@@ -155,7 +159,6 @@ namespace MarkdownViewer.Core.Implementations
                     var element = new MathBlockElement
                     {
                         RawText = blockText,
-                        ElementType = Elements.MarkdownElementType.MathBlock,
                         Content = mathContent
                     };
                     yield return element;
@@ -171,7 +174,6 @@ namespace MarkdownViewer.Core.Implementations
                     var element = new CodeBlockElement
                     {
                         RawText = blockText,
-                        ElementType = Elements.MarkdownElementType.CodeBlock,
                         Code = string.Join(Environment.NewLine, codeLines),
                         Language = fencedCodeBlock.Info ?? string.Empty
                     };
@@ -186,7 +188,6 @@ namespace MarkdownViewer.Core.Implementations
                     var element = new HorizontalRuleElement
                     {
                         RawText = blockText,
-                        ElementType = Elements.MarkdownElementType.HorizontalRule
                     };
                     yield return element;
                 }
@@ -195,11 +196,10 @@ namespace MarkdownViewer.Core.Implementations
                     var element = new TableElement
                     {
                         RawText = blockText,
-                        ElementType = Elements.MarkdownElementType.Table,
                         Headers =
                             table.Count > 0 && table[0] is TableRow headerRow
                                 ? headerRow.Select(cell => GetCellContent((TableCell)cell)).ToList()
-                                : new List<string>(),
+                                : [],
                         Rows = table
                             .Skip(1)
                             .Where(row => row is TableRow)
@@ -218,49 +218,41 @@ namespace MarkdownViewer.Core.Implementations
 
         private string GetCellContent(Block cell)
         {
-            if (cell == null)
-                return string.Empty;
-
             var paragraph = cell.Descendants<ParagraphBlock>().FirstOrDefault();
             if (paragraph?.Inline == null)
                 return string.Empty;
 
             var content = new StringBuilder();
-            foreach (var inline in paragraph.Inline)
+            foreach (Inline inline in paragraph.Inline)
             {
-                if (inline is CodeInline codeInline)
+                switch (inline)
                 {
-                    content.Append('`').Append(codeInline.Content).Append('`');
-                }
-                else if (inline is LinkInline link)
-                {
-                    if (link.IsImage)
-                    {
+                    case CodeInline codeInline:
+                        content.Append('`').Append(codeInline.Content).Append('`');
+                        break;
+                    case LinkInline link when link.IsImage:
                         content
                             .Append("![")
                             .Append(link.Label ?? string.Empty)
                             .Append("](")
                             .Append(link.Url)
                             .Append(link.Title != null ? $" \"{link.Title}\"" : string.Empty)
-                            .Append(")");
-                    }
-                    else
-                    {
+                            .Append(')');
+                        break;
+                    case LinkInline link:
                         content
-                            .Append("[")
+                            .Append('[')
                             .Append(ProcessInlineElements(link))
                             .Append("](")
                             .Append(link.Url)
-                            .Append(")");
-                    }
-                }
-                else if (inline is LiteralInline literal)
-                {
-                    content.Append(literal.Content);
-                }
-                else
-                {
-                    content.Append(ProcessInline(inline));
+                            .Append(')');
+                        break;
+                    case LiteralInline literal:
+                        content.Append(literal.Content);
+                        break;
+                    default:
+                        content.Append(ProcessInline(inline));
+                        break;
                 }
             }
             return content.ToString();
@@ -298,35 +290,34 @@ namespace MarkdownViewer.Core.Implementations
             var items = new List<ListItemElement>();
             foreach (var item in listBlock)
             {
-                if (item is ListItemBlock listItem)
+                if (item is not ListItemBlock listItem) 
+                    continue;
+                
+                var text = string.Empty;
+                var inlines = new List<MarkdownElement>();
+                var paragraph = listItem.Descendants<ParagraphBlock>().FirstOrDefault();
+                if (paragraph?.Inline != null)
                 {
-                    var text = string.Empty;
-                    var inlines = new List<MarkdownElement>();
-                    var paragraph = listItem.Descendants<ParagraphBlock>().FirstOrDefault();
-                    if (paragraph?.Inline != null)
-                    {
-                        text = ProcessInlineElements(paragraph.Inline);
-                        inlines = ProcessInlines(paragraph.Inline);
-                    }
-
-                    var element = new ListItemElement
-                    {
-                        RawText = item.ToString() ?? string.Empty,
-                        ElementType = Elements.MarkdownElementType.ListItem,
-                        Text = text,
-                        Level = level,
-                        Inlines = inlines
-                    };
-
-                    // Process sub-list
-                    var subList = listItem.Descendants<ListBlock>().FirstOrDefault();
-                    if (subList != null)
-                    {
-                        element.Children = ParseListItems(subList, level + 1);
-                    }
-
-                    items.Add(element);
+                    text = ProcessInlineElements(paragraph.Inline);
+                    inlines = ProcessInlines(paragraph.Inline);
                 }
+
+                var element = new ListItemElement
+                {
+                    RawText = item.ToString() ?? string.Empty,
+                    Text = text,
+                    IndentationLevel = level,
+                    Inlines = inlines
+                };
+
+                // Process sub-list
+                var subList = listItem.Descendants<ListBlock>().FirstOrDefault();
+                if (subList != null)
+                {
+                    element.Children = ParseListItems(subList, level + 1);
+                }
+
+                items.Add(element);
             }
             return items;
         }
@@ -336,64 +327,63 @@ namespace MarkdownViewer.Core.Implementations
             var items = new List<TaskListItemElement>();
             foreach (var item in listBlock)
             {
-                if (item is ListItemBlock listItem)
+                if (item is not ListItemBlock listItem)
+                    continue;
+                
+                var text = string.Empty;
+                var isChecked = false;
+                var inlines = new List<MarkdownElement>();
+
+                var paragraph = listItem.Descendants<ParagraphBlock>().FirstOrDefault();
+                if (paragraph?.Inline != null)
                 {
-                    var text = string.Empty;
-                    var isChecked = false;
-                    var inlines = new List<MarkdownElement>();
+                    // Process all inline elements
+                    text = ProcessInlineElements(paragraph.Inline);
+                    inlines = ProcessInlines(paragraph.Inline);
 
-                    var paragraph = listItem.Descendants<ParagraphBlock>().FirstOrDefault();
-                    if (paragraph?.Inline != null)
+                    // Check if contains task list marker and extract
+                    if (
+                        text.StartsWith("[ ] ")
+                        || text.StartsWith("[x] ")
+                        || text.StartsWith("[X] ")
+                    )
                     {
-                        // Process all inline elements
-                        text = ProcessInlineElements(paragraph.Inline);
-                        inlines = ProcessInlines(paragraph.Inline);
+                        isChecked = text.StartsWith("[x] ") || text.StartsWith("[X] ");
+                        text = text[4..]; // Skip "[ ] " or "[x] "
 
-                        // Check if contains task list marker and extract
-                        if (
-                            text.StartsWith("[ ] ")
-                            || text.StartsWith("[x] ")
-                            || text.StartsWith("[X] ")
-                        )
+                        // Remove the task list marker from inlines if it's the first text element
+                        if (inlines.Count > 0 && inlines[0] is TextElement textElement)
                         {
-                            isChecked = text.StartsWith("[x] ") || text.StartsWith("[X] ");
-                            text = text.Substring(4); // Skip "[ ] " or "[x] "
-
-                            // Remove the task list marker from inlines if it's the first text element
-                            if (inlines.Count > 0 && inlines[0] is TextElement textElement)
+                            var firstText = textElement.Text;
+                            if (
+                                firstText.StartsWith("[ ] ")
+                                || firstText.StartsWith("[x] ")
+                                || firstText.StartsWith("[X] ")
+                            )
                             {
-                                var firstText = textElement.Text;
-                                if (
-                                    firstText.StartsWith("[ ] ")
-                                    || firstText.StartsWith("[x] ")
-                                    || firstText.StartsWith("[X] ")
-                                )
-                                {
-                                    textElement.Text = firstText.Substring(4);
-                                }
+                                textElement.Text = firstText.Substring(4);
                             }
                         }
                     }
-
-                    var element = new TaskListItemElement
-                    {
-                        RawText = item.ToString() ?? string.Empty,
-                        ElementType = Elements.MarkdownElementType.TaskListItem,
-                        Text = text,
-                        IsChecked = isChecked,
-                        Level = level,
-                        Inlines = inlines
-                    };
-
-                    // Process sub-list
-                    var childList = listItem.Descendants<ListBlock>().FirstOrDefault();
-                    if (childList != null)
-                    {
-                        element.Children = ParseTaskListItems(childList, level + 1);
-                    }
-
-                    items.Add(element);
                 }
+
+                var element = new TaskListItemElement
+                {
+                    RawText = item.ToString() ?? string.Empty,
+                    Text = text,
+                    IsChecked = isChecked,
+                    Level = level,
+                    Inlines = inlines
+                };
+
+                // Process sub-list
+                var childList = listItem.Descendants<ListBlock>().FirstOrDefault();
+                if (childList != null)
+                {
+                    element.Children = ParseTaskListItems(childList, level + 1);
+                }
+
+                items.Add(element);
             }
             return items;
         }
@@ -402,29 +392,26 @@ namespace MarkdownViewer.Core.Implementations
         {
             return inline switch
             {
-                LinkInline link when link.IsImage
+                LinkInline { IsImage: true } link 
                     => new ImageElement
                     {
                         RawText = link.ToString() ?? string.Empty,
-                        ElementType = Elements.MarkdownElementType.Image,
                         Source = link.Url ?? string.Empty,
-                        Title = link.Title ?? string.Empty,
-                        Alt = link.Label?.ToString() ?? string.Empty
+                        Title = link.Title,
+                        Alt = link.Label
                     },
                 LinkInline link
                     => new LinkElement
                     {
                         RawText = link.ToString() ?? string.Empty,
-                        ElementType = Elements.MarkdownElementType.Link,
                         Text = ProcessInlineElements(link),
                         Url = link.Url ?? string.Empty,
-                        Title = link.Title ?? string.Empty
+                        Title = link.Title
                     },
                 EmphasisInline emphasis
                     => new EmphasisElement
                     {
                         RawText = emphasis.ToString() ?? string.Empty,
-                        ElementType = Elements.MarkdownElementType.Emphasis,
                         Text = ProcessInlineElements(emphasis),
                         IsStrong = emphasis.DelimiterCount == 2
                     },
@@ -432,28 +419,24 @@ namespace MarkdownViewer.Core.Implementations
                     => new CodeInlineElement
                     {
                         RawText = code.ToString() ?? string.Empty,
-                        ElementType = Elements.MarkdownElementType.Text,
-                        Code = code.Content.ToString()
+                        Code = code.Content
                     },
                 MathInline mathInline
                     => new MathInlineElement
                     {
                         RawText = mathInline.ToString() ?? string.Empty,
-                        ElementType = Elements.MarkdownElementType.MathInline,
                         Content = mathInline.Content.ToString()
                     },
                 LiteralInline literal
                     => new TextElement
                     {
-                        RawText = literal.ToString() ?? string.Empty,
-                        ElementType = Elements.MarkdownElementType.Text,
+                        RawText = literal.ToString(),
                         Text = literal.Content.ToString()
                     },
                 _
                     => new TextElement
                     {
                         RawText = inline.ToString() ?? string.Empty,
-                        ElementType = Elements.MarkdownElementType.Text,
                         Text = ProcessInline(inline)
                     }
             };
@@ -462,12 +445,9 @@ namespace MarkdownViewer.Core.Implementations
         private List<MarkdownElement> ProcessInlines(ContainerInline container)
         {
             var inlines = new List<MarkdownElement>();
-            if (container != null)
+            foreach (var inline in container)
             {
-                foreach (var inline in container)
-                {
-                    inlines.Add(CreateInlineElement(inline));
-                }
+                inlines.Add(CreateInlineElement(inline));
             }
             return inlines;
         }
@@ -479,31 +459,28 @@ namespace MarkdownViewer.Core.Implementations
                 return new ParagraphElement
                 {
                     RawText = blockText,
-                    ElementType = Elements.MarkdownElementType.Paragraph,
                     Text = string.Empty,
-                    Inlines = new List<MarkdownElement>
-                    {
+                    Inlines =
+                    [
                         new ImageElement
                         {
                             RawText = blockText,
-                            ElementType = Elements.MarkdownElementType.Image,
                             Source = imageLink.Url ?? string.Empty,
                             Title = imageLink.Title ?? string.Empty,
-                            Alt = imageLink.Label?.ToString() ?? string.Empty
+                            Alt = imageLink.Label ?? string.Empty
                         }
-                    }
+                    ]
                 };
             }
 
             return new ParagraphElement
             {
                 RawText = blockText,
-                ElementType = Elements.MarkdownElementType.Paragraph,
                 Text = string.Empty,
                 Inlines =
                     paragraph.Inline != null
                         ? ProcessInlines(paragraph.Inline)
-                        : new List<MarkdownElement>()
+                        : []
             };
         }
 
@@ -512,9 +489,7 @@ namespace MarkdownViewer.Core.Implementations
             var element = new QuoteElement
             {
                 RawText = blockText,
-                ElementType = Elements.MarkdownElementType.Quote,
-                Text = string.Empty,
-                Inlines = new List<MarkdownElement>()
+                Text = string.Empty
             };
 
             foreach (var line in quoteBlock)

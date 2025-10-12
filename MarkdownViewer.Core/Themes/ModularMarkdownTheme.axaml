@@ -1,0 +1,136 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:AvaloniaMath.Controls;assembly=AvaloniaMath">
+
+    <Style Selector=".Markdown TextBlock.H1">
+        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Margin" Value="0,16,0,8" />
+    </Style>
+    <Style Selector=".Markdown SelectableTextBlock.H1">
+        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Margin" Value="0,16,0,8" />
+    </Style>
+    <Style Selector=".Markdown TextBlock.H2">
+        <Setter Property="FontSize" Value="24" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Margin" Value="0,14,0,7" />
+    </Style>
+    <Style Selector=".Markdown SelectableTextBlock.H2">
+        <Setter Property="FontSize" Value="24" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Margin" Value="0,14,0,7" />
+    </Style>
+    <Style Selector=".Markdown TextBlock.H3">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Margin" Value="0,12,0,6" />
+    </Style>
+    <Style Selector=".Markdown SelectableTextBlock.H3">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Margin" Value="0,12,0,6" />
+    </Style>
+    <Style Selector=".Markdown TextBlock.H4">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Margin" Value="0,10,0,5" />
+    </Style>
+    <Style Selector=".Markdown SelectableTextBlock.H4">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Margin" Value="0,10,0,5" />
+    </Style>
+    <Style Selector=".Markdown TextBlock.H5">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Margin" Value="0,8,0,4" />
+    </Style>
+    <Style Selector=".Markdown SelectableTextBlock.H5">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Margin" Value="0,8,0,4" />
+    </Style>
+
+    <Style Selector=".Markdown TextBlock.Text">
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+    <Style Selector=".Markdown SelectableTextBlock.Text">
+        <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+    
+    <Style Selector=".Markdown TextBlock.Code">
+        <Setter Property="FontFamily" Value="Consolas, Menlo, Courier New, monospace" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style Selector=".Markdown SelectableTextBlock.Code">
+        <Setter Property="FontFamily" Value="Consolas, Menlo, Courier New, monospace" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <Style Selector=".Markdown Border.Code.Block">
+        <Setter Property="Background" Value="{DynamicResource MarkdownCodeBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MarkdownCodeBorder}" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="10" />
+        <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+
+    <Style Selector=".Markdown Border.Code.Inline">
+        <Setter Property="Background" Value="{DynamicResource MarkdownCodeBackground}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="3" />
+        <Setter Property="Padding" Value="4,2" />
+        <Setter Property="Margin" Value="2,0" />
+    </Style>
+
+    <Style Selector=".Markdown TextBlock.Link">
+        <Setter Property="Foreground" Value="{DynamicResource MarkdownLinkForeground}"/>
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector=".Markdown SelectableTextBlock.Link">
+        <Setter Property="Foreground" Value="{DynamicResource MarkdownLinkForeground}"/>
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector=".Markdown TextBlock.Link:pointerover">
+        <Setter Property="TextDecorations" Value="Underline" />
+    </Style>
+    <Style Selector=".Markdown SelectableTextBlock.Link:pointerover">
+        <Setter Property="TextDecorations" Value="Underline" />
+    </Style>
+
+    <Style Selector=".Markdown Image.Image">
+        <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+
+    <Style Selector=".Markdown Border.Quote">
+        <Setter Property="Background" Value="{DynamicResource MarkdownQuoteBackground}" />
+        <Setter Property="BorderThickness" Value="4,0,0,0" />
+        <Setter Property="BorderBrush" Value="{DynamicResource MarkdownBorderColor}" />
+        <Setter Property="Padding" Value="10" />
+        <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+    <Style Selector=".Markdown TextBlock.Quote">
+        <Setter Property="Foreground" Value="{DynamicResource MarkdownQuoteForeground}" />
+        <Setter Property="Margin" Value="10" />
+    </Style>
+    <Style Selector=".Markdown SelectableTextBlock.Quote">
+        <Setter Property="Foreground" Value="{DynamicResource MarkdownQuoteForeground}" />
+        <Setter Property="Margin" Value="10" />
+    </Style>
+
+    <Style Selector=".Markdown Border.HorizontalRule">
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Background" Value="{DynamicResource MarkdownBorderColor}" />
+        <Setter Property="Margin" Value="0,10" />
+    </Style>
+    
+    <Style Selector=".Markdown controls|FormulaBlock.Math">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Margin" Value="0, 0, 0, 10" />
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+    </Style>
+</Styles>

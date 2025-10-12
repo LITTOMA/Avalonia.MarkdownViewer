@@ -1,29 +1,17 @@
 namespace MarkdownViewer.Core.Elements
 {
-    public enum MarkdownElementType
+    public enum MarkdownHeadingLevel
     {
-        Heading,
-        Paragraph,
-        CodeBlock,
-        Image,
-        Link,
-        List,
-        ListItem,
-        Quote,
-        HorizontalRule,
-        Table,
-        Emphasis,
-        Text,
-        TaskList,
-        TaskListItem,
-        MathBlock,
-        MathInline
+        H1,
+        H2,
+        H3,
+        H4,
+        H5
     }
 
     public abstract class MarkdownElement
     {
         public required string RawText { get; set; }
-        public MarkdownElementType ElementType { get; set; }
     }
 
     public class TextElement : MarkdownElement
@@ -33,7 +21,7 @@ namespace MarkdownViewer.Core.Elements
 
     public class HeadingElement : MarkdownElement
     {
-        public int Level { get; set; }
+        public MarkdownHeadingLevel Level { get; set; }
         public required string Text { get; set; }
     }
 
@@ -66,29 +54,29 @@ namespace MarkdownViewer.Core.Elements
     public class ListElement : MarkdownElement
     {
         public bool IsOrdered { get; set; }
-        public List<ListItemElement> Items { get; set; } = new();
+        public List<ListItemElement> Items { get; set; } = [];
     }
 
     public class ListItemElement : MarkdownElement
     {
         public required string Text { get; set; }
-        public int Level { get; set; }
-        public List<ListItemElement> Children { get; set; } = new();
-        public List<MarkdownElement> Inlines { get; set; } = new();
+        public required int IndentationLevel { get; set; }
+        public List<ListItemElement> Children { get; set; } = [];
+        public List<MarkdownElement> Inlines { get; set; } = [];
     }
 
     public class QuoteElement : MarkdownElement
     {
         public required string Text { get; set; }
-        public List<MarkdownElement> Inlines { get; set; } = new();
+        public List<MarkdownElement> Inlines { get; set; } = [];
     }
 
-    public class HorizontalRuleElement : MarkdownElement { }
+    public class HorizontalRuleElement : MarkdownElement;
 
     public class TableElement : MarkdownElement
     {
-        public List<string> Headers { get; set; } = new();
-        public List<List<string>> Rows { get; set; } = new();
+        public List<string> Headers { get; set; } = [];
+        public List<List<string>> Rows { get; set; } = [];
     }
 
     public class EmphasisElement : MarkdownElement
@@ -104,7 +92,7 @@ namespace MarkdownViewer.Core.Elements
 
     public class TaskListElement : MarkdownElement
     {
-        public List<TaskListItemElement> Items { get; set; } = new();
+        public List<TaskListItemElement> Items { get; set; } = [];
     }
 
     public class TaskListItemElement : MarkdownElement
@@ -112,8 +100,8 @@ namespace MarkdownViewer.Core.Elements
         public required string Text { get; set; }
         public bool IsChecked { get; set; }
         public int Level { get; set; }
-        public List<TaskListItemElement> Children { get; set; } = new();
-        public List<MarkdownElement> Inlines { get; set; } = new();
+        public List<TaskListItemElement> Children { get; set; } = [];
+        public List<MarkdownElement> Inlines { get; set; } = [];
     }
 
     public class MathBlockElement : MarkdownElement

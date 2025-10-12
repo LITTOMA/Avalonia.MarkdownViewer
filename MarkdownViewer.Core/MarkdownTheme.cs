@@ -3,6 +3,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using Avalonia.Media;
 using System;
+using Avalonia.Data;
 
 namespace MarkdownViewer.Core
 {
@@ -12,7 +13,7 @@ namespace MarkdownViewer.Core
     public static class MarkdownTheme
     {
         private static bool _isInitialized = false;
-        private static readonly object _lock = new object();
+        private static readonly object _lock = new();
         private static ThemeVariant? _lastThemeVariant;
 
         /// <summary>
@@ -32,34 +33,32 @@ namespace MarkdownViewer.Core
 
                 try
                 {
-                    // Load theme resources
-                    var themeUri = new Uri(
-                        "avares://MarkdownViewer.Core/Themes/MarkdownTheme.axaml"
-                    );
-                    var theme = AvaloniaXamlLoader.Load(themeUri) as IStyle;
-
-                    if (theme != null && Application.Current?.Styles != null)
+                    if (Application.Current?.Styles != null)
                     {
-                        // Check if theme has already been added
-                        bool themeExists = false;
-                        foreach (var style in Application.Current.Styles)
+                        var themeUri = new Uri("avares://MarkdownViewer.Core/Themes/MarkdownTheme.axaml");
+                        if (AvaloniaXamlLoader.Load(themeUri) is IStyle theme)
                         {
-                            if (style.GetType().Name.Contains("MarkdownTheme"))
+                            bool themeExists = Application.Current.Styles
+                                .Any(style => style.GetType().Name.Contains("MarkdownTheme"));
+                            
+                            if (!themeExists)
                             {
-                                themeExists = true;
-                                break;
+                                Application.Current.Styles.Add(theme);
                             }
                         }
-
-                        if (!themeExists)
+                        
+                        var modularThemeUri = new Uri("avares://MarkdownViewer.Core/Themes/ModularMarkdownTheme.axaml");
+                        if (AvaloniaXamlLoader.Load(modularThemeUri) is IStyle modularTheme)
                         {
-                            Application.Current.Styles.Add(theme);
+                            bool themeExists = Application.Current.Styles
+                                .Any(style => style.GetType().Name.Contains("ModularMarkdownTheme"));
+                            
+                            if (!themeExists)
+                            {
+                                Application.Current.Styles.Add(modularTheme);
+                            }
                         }
-                    }
-
-                    // Listen for theme changes
-                    if (Application.Current != null)
-                    {
+                        
                         _lastThemeVariant = Application.Current.ActualThemeVariant;
                         Application.Current.PropertyChanged += OnApplicationPropertyChanged;
                     }
@@ -81,14 +80,14 @@ namespace MarkdownViewer.Core
             AvaloniaPropertyChangedEventArgs e
         )
         {
-            if (e.Property == Application.ActualThemeVariantProperty)
+            if (e.Property != Application.ActualThemeVariantProperty) 
+                return;
+            
+            var newTheme = e.NewValue as ThemeVariant;
+            if (newTheme != _lastThemeVariant)
             {
-                var newTheme = e.NewValue as ThemeVariant;
-                if (newTheme != _lastThemeVariant)
-                {
-                    _lastThemeVariant = newTheme;
-                    ThemeChanged?.Invoke(null, EventArgs.Empty);
-                }
+                _lastThemeVariant = newTheme;
+                ThemeChanged?.Invoke(null, EventArgs.Empty);
             }
         }
 
@@ -100,24 +99,28 @@ namespace MarkdownViewer.Core
         /// <returns>Brush resource</returns>
         public static IBrush GetThemeBrush(string resourceKey, Color fallbackColor)
         {
+            return GetResource(resourceKey, () => new SolidColorBrush(fallbackColor));
+        }
+
+        public static T GetResource<T>(string resourceKey, Func<T> defaultValue)
+        {
             // Ensure theme is initialized
             Initialize();
 
             // Try to get from application resources
-            if (
-                Application.Current?.TryGetResource(
+            if (Application.Current?.TryGetResource(
                     resourceKey,
                     Application.Current.ActualThemeVariant,
-                    out var resource
+                    out object? resource
                 ) == true
-                && resource is IBrush brush
             )
             {
-                return brush;
+                if (resource is T value)
+                    return value;
+                
             }
 
-            // Fallback to default color
-            return new SolidColorBrush(fallbackColor);
+            return defaultValue();
         }
 
         /// <summary>

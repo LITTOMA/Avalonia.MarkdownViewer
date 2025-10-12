@@ -7,13 +7,13 @@
     
     <!-- NuGet Package Info -->
     <PackageId>MarkdownViewer.Core</PackageId>
-    <Version>1.0.5</Version>
+    <Version>1.0.17</Version>
     <Authors>LITTOMA</Authors>
     <Company>LITTOMA</Company>
     <Description>A powerful Markdown viewer control for Avalonia applications with support for custom rendering and styling.
     </Description>
     <PackageReleaseNotes>
-		- Fix inline code rendering issue within lists.
+		- Exposed some Renderer resources
 	</PackageReleaseNotes>
     <PackageTags>markdown;avalonia;viewer;control;xaml</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
