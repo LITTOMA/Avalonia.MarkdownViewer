@@ -26,32 +26,43 @@ namespace MarkdownViewer.Core.Services
             _maxCacheSizeInBytes = maxCacheSizeInBytes;
         }
 
-        public async Task<byte[]> GetImageAsync(
-            string url,
+        public virtual async Task<byte[]> GetImageAsync(
+            string source,
             CancellationToken cancellationToken = default
         )
         {
-            if (_cache.TryGetValue(url, out var cachedData))
+            if (await GetImageFromCacheAsync(source, cancellationToken) is byte[] cachedData)
             {
-                _logger.LogDebug("Cache hit for {Url}", url);
+                _logger.LogDebug("Cache hit for {Url}", source);
                 return cachedData;
             }
 
-            _logger.LogDebug("Cache miss for {Url}, downloading...", url);
+            _logger.LogDebug("Cache miss for {Url}, downloading...", source);
             try
             {
-                var imageData = await DownloadAndCompressImageAsync(url, cancellationToken);
-                await CacheImageAsync(url, imageData, cancellationToken);
+                var imageData = await DownloadAndCompressImageAsync(source, cancellationToken);
+                await CacheImageAsync(source, imageData, cancellationToken);
                 return imageData;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to download image from {Url}", url);
-                throw new ImageLoadException($"Failed to load image from {url}", ex);
+                _logger.LogError(ex, "Failed to download image from {Url}", source);
+                throw new ImageLoadException($"Failed to load image from {source}", ex);
             }
         }
 
-        private async Task<byte[]> DownloadAndCompressImageAsync(
+        public Task<byte[]?> GetImageFromCacheAsync(string source, CancellationToken cancellationToken = default)
+        {
+            if (_cache.TryGetValue(source, out var cachedData))
+            {
+                _logger.LogDebug("Cache hit for {Url}", source);
+                return Task.FromResult<byte[]?>(cachedData);
+            }
+            _logger.LogDebug("Cache miss for {Url}", source);
+            return Task.FromResult<byte[]?>(null);
+        }
+
+        protected async Task<byte[]> DownloadAndCompressImageAsync(
             string url,
             CancellationToken cancellationToken
         )
@@ -61,14 +72,14 @@ namespace MarkdownViewer.Core.Services
         }
 
         public Task CacheImageAsync(
-            string url,
+            string source,
             byte[] imageData,
             CancellationToken cancellationToken = default
         )
         {
             if (imageData == null)
             {
-                _logger.LogWarning("Attempted to cache null image data for {Url}", url);
+                _logger.LogWarning("Attempted to cache null image data for {Url}", source);
                 return Task.CompletedTask;
             }
 
@@ -80,10 +91,10 @@ namespace MarkdownViewer.Core.Services
                 _currentCacheSize = 0;
             }
 
-            if (_cache.TryAdd(url, imageData))
+            if (_cache.TryAdd(source, imageData))
             {
                 Interlocked.Add(ref _currentCacheSize, imageSize);
-                _logger.LogDebug("Cached image {Url} ({Size} bytes)", url, imageSize);
+                _logger.LogDebug("Cached image {Url} ({Size} bytes)", source, imageSize);
             }
 
             return Task.CompletedTask;
