@@ -1,14 +1,16 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <AssemblyVersion>0.0.1.0</AssemblyVersion>
+    <FileVersion>0.0.1.0</FileVersion>
+    <InformationalVersion>0.0.1-46+Branch.master.Sha.5c3e4884523448f1939f2cccf2f8d4d1e2bd4c93</InformationalVersion>
+    <Version>0.0.1-46</Version>
   </PropertyGroup>
-  
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.3.2" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.2" />
@@ -20,7 +22,6 @@
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\..\MarkdownViewer.Core\MarkdownViewer.Core.csproj" />
   </ItemGroup>

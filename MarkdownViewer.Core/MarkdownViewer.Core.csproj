@@ -1,13 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>net9.0;net8.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    
     <!-- NuGet Package Info -->
     <PackageId>MarkdownViewer.Core</PackageId>
-    <Version>1.0.5</Version>
+    <Version>1.0.6-47</Version>
     <Authors>LITTOMA</Authors>
     <Company>LITTOMA</Company>
     <Description>A powerful Markdown viewer control for Avalonia applications with support for custom rendering and styling.
@@ -20,25 +18,23 @@
     <PackageProjectUrl>https://github.com/LITTOMA/Avalonia.MarkdownViewer</PackageProjectUrl>
     <RepositoryUrl>https://github.com/LITTOMA/Avalonia.MarkdownViewer</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    
     <!-- Build Settings -->
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AssemblyVersion>1.0.6.0</AssemblyVersion>
+    <FileVersion>1.0.6.0</FileVersion>
+    <InformationalVersion>1.0.6-47+Branch.master.Sha.9a659d0bbf7661902a7bf5fc8b88f3efcff72763</InformationalVersion>
   </PropertyGroup>
-
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.3.2" />
     <PackageReference Include="AvaloniaMath" Version="2.1.0" />
     <PackageReference Include="Markdig" Version="0.40.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.2" />
   </ItemGroup>
-
   <ItemGroup>
     <AvaloniaResource Include="Themes\**\*.axaml" />
   </ItemGroup>
-
 </Project>

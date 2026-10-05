@@ -1,15 +1,17 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0-ios</TargetFramework>
     <SupportedOSPlatformVersion>13.0</SupportedOSPlatformVersion>
     <Nullable>enable</Nullable>
+    <AssemblyVersion>0.0.1.0</AssemblyVersion>
+    <FileVersion>0.0.1.0</FileVersion>
+    <InformationalVersion>0.0.1-46+Branch.master.Sha.5c3e4884523448f1939f2cccf2f8d4d1e2bd4c93</InformationalVersion>
+    <Version>0.0.1-46</Version>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Avalonia.iOS" Version="$(AvaloniaVersion)" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\MarkdownViewer.Avalonia\MarkdownViewer.Avalonia.csproj" />
   </ItemGroup>
