@@ -160,9 +160,8 @@ namespace MarkdownViewer.Core.Implementations
                     };
                     yield return element;
                 }
-                else if (block is CodeBlock codeBlock)
+                else if (block is FencedCodeBlock fencedCodeBlock)
                 {
-                    var fencedCodeBlock = (FencedCodeBlock)codeBlock;
                     var codeLines = fencedCodeBlock.Lines.Lines
                         .Take(fencedCodeBlock.Lines.Count)
                         .Select(x => x.ToString())
@@ -174,6 +173,22 @@ namespace MarkdownViewer.Core.Implementations
                         ElementType = Elements.MarkdownElementType.CodeBlock,
                         Code = string.Join(Environment.NewLine, codeLines),
                         Language = fencedCodeBlock.Info ?? string.Empty
+                    };
+                    yield return element;
+                }
+                else if (block is CodeBlock codeBlock)
+                {
+                    var codeLines = codeBlock.Lines.Lines
+                        .Take(codeBlock.Lines.Count)
+                        .Select(x => x.ToString())
+                        .ToList();
+
+                    var element = new CodeBlockElement
+                    {
+                        RawText = blockText,
+                        ElementType = Elements.MarkdownElementType.CodeBlock,
+                        Code = string.Join(Environment.NewLine, codeLines),
+                        Language = string.Empty
                     };
                     yield return element;
                 }
