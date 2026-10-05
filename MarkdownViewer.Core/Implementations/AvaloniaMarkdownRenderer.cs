@@ -11,8 +11,6 @@ using Microsoft.Extensions.Logging;
 using MarkdownViewer.Core.Elements;
 using MarkdownViewer.Core.Services;
 using AvaloniaMath.Controls;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace MarkdownViewer.Core.Implementations
 {
